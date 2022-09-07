@@ -1,3 +1,4 @@
+![Parabible header image](./header.png)
 # Data Compiler
 
 Parabible's Data Compiler (WIP) gathers the data from various module repositories and compiles it into files that seed the database.
