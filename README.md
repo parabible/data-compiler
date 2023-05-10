@@ -29,7 +29,7 @@ The `module.json` file provides module information such as copyright details, et
  "name": "Biblia Hebraica Stuttgartensia (Amstelodamensis)",
  "description": "Tagged BHS with linguistic annotations compiled by the ETCBC",
  "corpora": ["OT"],
- "language": "heb", //ISO 639-2 Code
+ "language": "heb",
  "versification_schema": "bhs",
  "license": "Attribution-NonCommercial 4.0 International (<a href='https://creativecommons.org/licenses/by-nc/4.0/'>CC BY-NC 4.0</a>)",
  "url": "http://dx.doi.org/10.17026%2Fdans-z6y-skyh"
