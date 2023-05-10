@@ -60,7 +60,7 @@ The schema for `word_features` is as follows:
 | prefix | Any punctuation etc. that precedes the word |
 | trailer | Any punctuation etc. that succeeds the word |
 | *attribute* | Word attributes |
-| *syntax*_node | `sentence`, `clause`, `phrase`, `verse`  |
+| *syntax*_node | `sentence`, `clause`, `phrase`  |
 | rid | Reference id based on the relevant versification system |
 
 Each *attribute* should be listed in features.json
