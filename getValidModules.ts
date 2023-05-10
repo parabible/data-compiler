@@ -57,8 +57,6 @@ export default (path: string) => {
       continue;
     }
 
-    console.log(`Found module: ${moduleJson?.name}`);
-
     modules.push({
       data: `${modulePath}/data.sqlite`,
       ...moduleJson,

@@ -59,7 +59,6 @@ const validateModuleData: (path: string) => boolean = (path: string) => {
       continue;
     }
 
-    console.log(table);
     const missingFields =
       EXPECTED_TABLE_FIELDS[table as keyof typeof EXPECTED_TABLE_FIELDS].filter(
         (f) => !tableFields.includes(f),
