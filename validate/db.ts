@@ -11,7 +11,6 @@ const EXPECTED_TABLE_FIELDS = {
   ],
   word_features: [
     "wid",
-    "leader",
     "text",
     "trailer",
     "rid",
@@ -28,7 +27,7 @@ const ALLOWED_TABLE_FIELDS = {
     "text",
     "trailer",
     ...features.features.map((f) => f.key),
-    ...["sentence", "clause", "phrase"],
+    ...["phrase_node_id", "clause_node_id", "sentence_node_id"],
     "rid",
   ],
 };
