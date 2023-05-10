@@ -12,7 +12,7 @@ deno run -A --unstable main.ts /path/to/modules
 
 ## Modules
 
-A module is a Bible version/translation (one day, hopefully other books will be included). Modules are defined below:
+A module is a text such as a Bible version/translation (this now includes material such as Apostolic Fathers). Modules are defined below:
 
 Modules supply two files at `<module-name>/output/` to be consumed by the importer:
 
@@ -38,8 +38,8 @@ The `module.json` file provides module information such as copyright details, et
 
 Field | Description
 --- | ---
-Abbreviation | Short name of the module (e.g. `BHS`).
-Name | Full name of the module (e.g. `Biblia Hebraica Stuttgartensia`).
+Abbreviation | Short name of the module (e.g. "BHS").
+Name | Full name of the module (e.g. "Biblia Hebraica Stuttgartensia").
 Description | Short description of the module (including provenance).
 Corpora | The corpora included in the module. Available corpora include: `OT`, `NT`, `ApF`.
 Language | Language code in ISO 639-2 format.
@@ -47,9 +47,9 @@ Versification_schema | The versification schema enables the importer to align ve
 License | Relevant copyright information.
 Url | A link to the source data.
 
-### `<module-name>.sqlite`
+### `data.sqlite`
 
-In the case of the BHS in the `module.json` above, if the root folder for the BHS importer is `hb-bhs-pipe`, the importer expects to find `hb-bhs-pipe/output/data.sqlite`. Assuming that the module is a tagged dataset, there are two tables: `word_features` and `verse_text`
+In the case of the BHS in the `module.json` above, if the root folder for the BHS importer is `hb-bhs-pipe`, the importer expects to find `hb-bhs-pipe/output/data.sqlite`. Every module has a `verse_text` table. Tagged modules also include a `word_features` table.
 
 The schema for `word_features` is as follows:
 
@@ -59,8 +59,8 @@ The schema for `word_features` is as follows:
 | text | The word as it should be rendered |
 | prefix | Any punctuation etc. that precedes the word |
 | trailer | Any punctuation etc. that succeeds the word |
-| *attribute* | Word attributes |
-| *syntax*_node | `sentence`, `clause`, `phrase`  |
+| *attribute* | Word attributes that correspond to known "features" (see `validate/features.json`) |
+| *syntax*_node | `sentence_node_id`, `clause_node_id`, `phrase_node_id`  |
 | rid | Reference id based on the relevant versification system |
 
 Each *attribute* should be listed in features.json
@@ -72,21 +72,19 @@ The schema for `verse_text` is much simpler:
 | field | description |
 |---|---|
 | rid | Reference id based on the relevant versification system |
-| text | JSON string containing a verse text array[*](*) |
+| text | JSON string containing a verse text array* |
 
 The importer will add an unversioned `parallel_id` based on the versification schema in `module.json`.
 
-[*] Verse text array is in the format (minified):
+\* Verse text array is in the format:
 
-```json
-[
-  {
-    "wid": integer,
-    "leader": string,
-    "word": string,
-    "trailer": string
-  }
-]
+```ts
+type VerseTextArray = {
+    wid: integer
+    leader: string
+    word: string
+    trailer: string
+}[]
 ```
 
 
