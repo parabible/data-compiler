@@ -1,7 +1,7 @@
-import { Database } from "https://deno.land/x/sqlite3@0.5.2/mod.ts";
+// Invoke with: deno run -A --unstable main.ts /path/to/modules
 
-const db = new Database("./build/parabible.sqlite");
-const [version] = db.prepare("select sqlite_version()").get<[string]>()!;
-console.log(version);
+import getValidModules from "./getValidModules.ts";
+const path = Deno.args[0];
 
-db.close();
+const modules = getValidModules(path);
+console.log(modules.map((m) => m.name));

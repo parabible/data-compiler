@@ -4,9 +4,15 @@
 
 Parabible's Data Compiler (WIP) gathers the data from various module repositories and compiles it into files that seed the database.
 
-A module is a Bible version/translation (one day, hopefully other books will be included). Modules are defined below:
+## Usage
+
+```
+deno run -A --unstable main.ts /path/to/modules
+```
 
 ## Modules
+
+A module is a Bible version/translation (one day, hopefully other books will be included). Modules are defined below:
 
 Modules supply two files at `<module-name>/output/` to be consumed by the importer:
 
