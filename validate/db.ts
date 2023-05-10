@@ -1,5 +1,5 @@
 import { Database } from "https://deno.land/x/sqlite3@0.9.1/mod.ts";
-import features from "./features.json" assert { type: "json" };
+import knownFeatures from "./features.json" assert { type: "json" };
 
 const EXPECTED_TABLES = [
   "verse_text",
@@ -26,7 +26,7 @@ const ALLOWED_TABLE_FIELDS = {
     "leader",
     "text",
     "trailer",
-    ...features.features.map((f) => f.key),
+    ...knownFeatures.features.map((f) => f.key),
     ...["phrase_node_id", "clause_node_id", "sentence_node_id"],
     "rid",
   ],
@@ -83,6 +83,40 @@ const validateModuleData: (path: string) => boolean = (path: string) => {
         `Extra fields in ${table} in ${path}: ${extraFieldsString}`,
       );
       return false;
+    }
+
+    // Now we test each known feature to make sure that if its an enum, we know the values
+    if (table === "word_features") {
+      for (const feature of knownFeatures.features) {
+        if (!tableFields.includes(feature.key)) {
+          continue;
+        }
+
+        const knownValuesForFeature = knownFeatures.values.filter((v) =>
+          v.feature === feature.key
+        ).map((v) => v.key);
+        if (feature.enum) {
+          const enumValues = db
+            .prepare(
+              `select distinct ${feature.key} as feature from word_features;`,
+            )
+            .all<{ feature: string }>()
+            .map((f) => f.feature);
+
+          const missingEnumValues = enumValues.filter((v) =>
+            v &&
+            v.trim() &&
+            !knownValuesForFeature.includes(v)
+          );
+          if (missingEnumValues.length) {
+            const missingEnumValuesString = missingEnumValues.join(", ");
+            console.log(
+              `Missing enum values from ${feature.key} in ${path}: ${missingEnumValuesString}`,
+            );
+            return false;
+          }
+        }
+      }
     }
   }
 
