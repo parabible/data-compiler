@@ -1,5 +1,5 @@
 // Invoke with: deno run -A --unstable main.ts /path/to/modules
-const BATCH_SIZE = 25000;
+const BATCH_SIZE = 50_000;
 const path = Deno.args[0];
 
 // Set up sqlite db for importing modules
@@ -17,6 +17,7 @@ const {
   modules,
   versificationSchemas,
 } = insertModuleInfo(modulesForInsert, db);
+console.log(versificationSchemas);
 
 // -----------------------------------------------------
 // Create parallel and word_features tables
@@ -73,12 +74,7 @@ allFeatures.forEach((f) => {
 
 // -----------------------------------------------------
 // Insert parallel data and word features
-import {
-  getAllParallelIds,
-  getParallelId,
-  getRidFromParallelIdAndSchema,
-  sortParallelIdsBySchema,
-} from "./getParallelId.ts";
+import { getParallelId } from "./getParallelId.ts";
 
 modules.forEach((module) => {
   console.log(`Inserting ${module.name}...`);
@@ -153,7 +149,7 @@ modules.forEach((module) => {
         :trailer,
         :rid,
         :parallel_id,
-        ${module.wordFeatures.map((_) => ":" + _).join(", ")}
+        ${module.wordFeatures.map((f) => ":" + f).join(", ")}
       );
     `);
     const insertWordFeaturesBatch = db.transaction((batch) => {
@@ -172,52 +168,10 @@ modules.forEach((module) => {
 
 // -----------------------------------------------------
 // Create ordering index
+import createOrderingIndex from "./createOrderingIndex.ts";
 console.log("Creating ordering index...");
-db.exec(`
-  DROP TABLE IF EXISTS ordering_index;
-  CREATE TABLE ordering_index (
-    parallel_id INTEGER NOT NULL,
-    versification_schema_id INTEGER NOT NULL,
-    rid INTEGER,
-    order_in_schema INTEGER NOT NULL
-  );
-`);
 
-const allPids = getAllParallelIds();
-Object.keys(versificationSchemas).forEach((vs) => {
-  const pids = allPids.slice().sort(sortParallelIdsBySchema(vs));
-  // write to file
-  const orderIndex = pids.map((pid, i) => ({
-    parallel_id: pid,
-    versification_schema_id: versificationSchemas[vs],
-    rid: getRidFromParallelIdAndSchema(pid, vs),
-    order_in_schema: i + 1,
-  }));
-  const insertOrderIndex = db.prepare(`
-    INSERT INTO ordering_index (
-      parallel_id,
-      versification_schema_id,
-      rid,
-      order_in_schema
-    ) VALUES (
-      :parallel_id,
-      :versification_schema_id,
-      :rid,
-      :order_in_schema
-    );
-  `);
-  const insertOrderIndexBatch = db.transaction((batch) => {
-    for (const v of batch) {
-      insertOrderIndex.run(v);
-    }
-  });
-  let i = 0;
-  while (orderIndex.length) {
-    const batch = orderIndex.splice(0, BATCH_SIZE);
-    insertOrderIndexBatch(batch);
-    console.log(`   - Inserted ${i += batch.length} verses`);
-  }
-});
+createOrderingIndex(db, versificationSchemas);
 
 // Export to csvs
 import exportToCsv from "./export.ts";

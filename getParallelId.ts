@@ -14,21 +14,29 @@ const parallelIdMap: {
     [versificationSchema: string]: number;
   };
 } = {};
-const alignmentsFromDb = alignmentDb.prepare(`SELECT * FROM alignment`).all();
+const alignmentsFromDb = alignmentDb.prepare(
+  `SELECT kjv, bhs, lxx, gnt FROM alignment`,
+).all();
 
-alignmentsFromDb.forEach((a, i) => {
-  Object.keys(a).forEach((k) => {
-    if (!a[k]) return;
+alignmentsFromDb.forEach((row, i) => {
+  Object.keys(row).forEach((vs) => {
+    if (!row[vs]) return;
 
-    if (!(k in alignments)) {
-      alignments[k] = {};
+    if (alignments?.[vs]?.[row[vs]]) {
+      console.log("Duplicate alignment!", vs, row[vs]);
+      console.log(alignments[vs][row[vs]], i + 1);
+      return;
     }
-    alignments[k][a[k]] = i + 1;
+
+    if (!(vs in alignments)) {
+      alignments[vs] = {};
+    }
+    alignments[vs][row[vs]] = i + 1;
 
     if (!(i + 1 in parallelIdMap)) {
       parallelIdMap[i + 1] = {};
     }
-    parallelIdMap[i + 1][k] = a[k];
+    parallelIdMap[i + 1][vs] = row[vs];
   });
 });
 
@@ -42,22 +50,16 @@ const getParallelId = (rid: number, versification_schema: string) => {
   }
 
   alignments[versification_schema][rid] = nextParallelId;
-  parallelIdMap[nextParallelId] = {
-    [versification_schema]: rid,
-  };
+
+  if (!(nextParallelId in parallelIdMap)) {
+    parallelIdMap[nextParallelId] = {};
+  }
+  parallelIdMap[nextParallelId][versification_schema] = rid;
+
   nextParallelId++;
   return alignments[versification_schema][rid];
 };
 
-const getAllParallelIds = () => {
-  const allParallelIds = new Set<number>();
-  Object.keys(alignments).forEach((vs) => {
-    Object.keys(alignments[vs]).forEach((rid) => {
-      allParallelIds.add(alignments[vs][+rid]);
-    });
-  });
-  return Array.from(allParallelIds);
-};
 const sortParallelIdsBySchema = (schema: string) =>
   (pidA: number, pidB: number) => {
     if (!(schema in alignments)) {
@@ -114,7 +116,6 @@ const getRidFromParallelIdAndSchema = (parallelId: number, schema: string) => {
 };
 
 export {
-  getAllParallelIds,
   getParallelId,
   getRidFromParallelIdAndSchema,
   sortParallelIdsBySchema,
