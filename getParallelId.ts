@@ -19,11 +19,18 @@ const alignmentsFromDb = alignmentDb.prepare(
 ).all();
 
 alignmentsFromDb.forEach((row, i) => {
+  const schemas = Object.keys(row).filter((vs) => row[vs]);
+  if (schemas.length === 1) {
+    // There's only one alignment, so we don't need to do anything
+    // console.log("Single alignment!", row);
+    return;
+  }
   Object.keys(row).forEach((vs) => {
     if (!row[vs]) return;
 
     if (alignments?.[vs]?.[row[vs]]) {
-      console.log("Duplicate alignment!", vs, row[vs]);
+      console.log("Duplicate alignment!", row);
+      console.log(vs, row[vs]);
       console.log(alignments[vs][row[vs]], i + 1);
       return;
     }

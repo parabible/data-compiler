@@ -1,5 +1,4 @@
 // Invoke with: deno run -A --unstable main.ts /path/to/modules
-const BATCH_SIZE = 50_000;
 const path = Deno.args[0];
 
 // Set up sqlite db for importing modules
@@ -20,55 +19,26 @@ const {
 console.log(versificationSchemas);
 
 // -----------------------------------------------------
-// Create parallel and word_features tables
-db.exec(`
-  DROP TABLE IF EXISTS parallel;
-  CREATE TABLE parallel (
-    parallel_id INTEGER NOT NULL,
-    versification_schema_id INTEGER NOT NULL,
-    module_id INTEGER NOT NULL,
-    rid INTEGER NOT NULL,
-    text TEXT
-  );
-  DROP TABLE IF EXISTS word_features;
-  CREATE TABLE word_features (
-    word_uid INTEGER PRIMARY KEY,
-    module_id INTEGER NOT NULL,
-    wid INTEGER NOT NULL,
-    leader TEXT,
-    text TEXT,
-    trailer TEXT,
-    rid INTEGER NOT NULL,
-    parallel_id INTEGER NOT NULL
-  )
-`);
+// -----------------------------------------------------
+// -----------------------------------------------------
+// PREPARE TO INSERT DATA
+import insertVerseText from "./insertVerseText.ts";
+import {
+  addFeatureColumn,
+  featureExists,
+  insertWordFeatures,
+} from "./insertWordFeatures.ts";
 
 // -----------------------------------------------------
 // Alter table to have all necessary feature columns
-const knownWordFeatureColumns = [
-  "word_uid",
-  "module_id",
-  "wid",
-  "leader",
-  "text",
-  "trailer",
-  "rid",
-  "parallel_id",
-];
-
-const addFeatureColumn = (feature: string) => {
-  db.exec(`ALTER TABLE word_features ADD COLUMN ${feature} TEXT`);
-  knownWordFeatureColumns.push(feature);
-};
-
 const allFeatures = modules.reduce((acc, m) => {
   m.wordFeatures.forEach((f) => acc.add(f));
   return acc;
 }, new Set<string>());
 
 allFeatures.forEach((f) => {
-  if (!knownWordFeatureColumns.includes(f)) {
-    addFeatureColumn(f);
+  if (!featureExists(f)) {
+    addFeatureColumn(db, f);
   }
 });
 
@@ -92,77 +62,22 @@ modules.forEach((module) => {
       rid: v.rid,
       text: v.text,
     }));
-  const insertVerseText = db.prepare(`
-    INSERT INTO parallel (
-      parallel_id,
-      versification_schema_id,
-      module_id,
-      rid,
-      text
-    ) VALUES (
-      :parallel_id,
-      :versification_schema_id,
-      :module_id,
-      :rid,
-      :text
-    );
-  `);
-  const insertVerseTextBatch = db.transaction((batch) => {
-    for (const v of batch) {
-      insertVerseText.run(v);
-    }
-  });
-  let i = 0;
-  while (verseTexts.length) {
-    const batch = verseTexts.splice(0, BATCH_SIZE);
-    insertVerseTextBatch(batch);
-    console.log(`   - Inserted ${i += batch.length} verses`);
-  }
+  insertVerseText(db, verseTexts);
 
   // If there are wordFeatures, prepare to insert them
   if (module.wordFeatures.length) {
+    const columns = module.wordFeatures;
     console.log(" - Inserting word features...");
-    const wordFeatures = data.prepare("SELECT * FROM word_features;").all()
+    const wordFeaturesContent: WordFeaturesObject[] = data.prepare(
+      "SELECT * FROM word_features;",
+    )
+      .all()
       .map((w) => ({
         ...w,
         module_id: module.module_id,
         parallel_id: getParallelId(w.rid, module.versification_schema),
       }));
-
-    const insertWordFeatures = db.prepare(`
-      INSERT INTO word_features (
-        word_uid,
-        module_id,
-        wid,
-        leader,
-        text,
-        trailer,
-        rid,
-        parallel_id,
-        ${module.wordFeatures.join(", ")}
-      ) VALUES (
-        :word_uid,
-        :module_id,
-        :wid,
-        :leader,
-        :text,
-        :trailer,
-        :rid,
-        :parallel_id,
-        ${module.wordFeatures.map((f) => ":" + f).join(", ")}
-      );
-    `);
-    const insertWordFeaturesBatch = db.transaction((batch) => {
-      for (const v of batch) {
-        insertWordFeatures.run(v);
-      }
-    });
-    let j = 0;
-    while (wordFeatures.length) {
-      const batch = wordFeatures.splice(0, BATCH_SIZE);
-      insertWordFeaturesBatch(batch);
-      console.log(`   - Inserted ${j += batch.length} words`);
-    }
+    insertWordFeatures(db, columns, wordFeaturesContent);
   }
 });
 
@@ -174,8 +89,8 @@ console.log("Creating ordering index...");
 createOrderingIndex(db, versificationSchemas);
 
 // Export to csvs
-import exportToCsv from "./export.ts";
-exportToCsv(db);
+import exportToCompressedCsv from "./exportToCompressedCsv.ts";
+exportToCompressedCsv(db);
 
 db.close();
 console.log("Done!");
