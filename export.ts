@@ -10,7 +10,7 @@ export default function (db: Database) {
   const tableQuery = "SELECT name FROM sqlite_master WHERE type='table'";
   const tables = db.prepare(tableQuery).all();
 
-  // Export each table to a CSV file and add it to the ZIP file
+  // Export each table to a CSV file and compress it
   for (const table of tables) {
     const tableName = table.name;
 
