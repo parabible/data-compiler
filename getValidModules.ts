@@ -1,6 +1,6 @@
 const { readDirSync } = Deno;
-import validateModuleJson from "./validate/module.ts";
-import validateModuleData from "./validate/db.ts";
+import validateModuleJson from "./validate/validateModuleJson.ts";
+import validateModuleData from "./validate/validateModuleData.ts";
 
 const directoryExists = (path: string) => {
   try {
@@ -11,7 +11,7 @@ const directoryExists = (path: string) => {
   }
 };
 
-export default (path: string) => {
+export default (path: string): ValidModules[] => {
   // Ensure that path is a directory
   if (!directoryExists(path)) {
     console.error("Error: path is not a directory");
@@ -43,23 +43,26 @@ export default (path: string) => {
       continue;
     }
 
-    const [moduleJson, error] = validateModuleJson(`${modulePath}/module.json`);
-    if (error) {
+    const jsonPath = `${modulePath}/module.json`;
+    const [moduleJson, jsonError] = validateModuleJson(jsonPath);
+    if (jsonError) {
       // Module.json is invalid
       console.error("Module.json is invalid for module at path: ", modulePath);
       continue;
     }
 
-    const validDatabase = validateModuleData(`${modulePath}/data.sqlite`);
-    if (!validDatabase) {
+    const dataPath = `${modulePath}/data.sqlite`;
+    const [wordFeatures, dataError] = validateModuleData(dataPath);
+    if (dataError || wordFeatures === null) {
       // Database is invalid
       console.error("Database is invalid for module at path: ", modulePath);
       continue;
     }
 
     modules.push({
-      data: `${modulePath}/data.sqlite`,
-      ...moduleJson,
+      pathToData: `${modulePath}/data.sqlite`,
+      wordFeatures,
+      ...moduleJson as ModuleJson,
     });
   }
   return modules;

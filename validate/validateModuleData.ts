@@ -32,7 +32,9 @@ const ALLOWED_TABLE_FIELDS = {
   ],
 };
 
-const validateModuleData: (path: string) => boolean = (path: string) => {
+const validateModuleData: (path: string) => ValidatedModuleData = (
+  path: string,
+) => {
   const db = new Database(path);
   const tables = db
     .prepare(
@@ -46,9 +48,10 @@ const validateModuleData: (path: string) => boolean = (path: string) => {
     console.log(
       `Missing tables from data.sqlite in ${path}: ${missingTablesString}`,
     );
-    return false;
+    return [null, true];
   }
 
+  const wordFeatureColumns = [];
   for (const table of ["verse_text", "word_features"]) {
     const tableFields = db
       .prepare(`pragma table_info(${table});`)
@@ -68,7 +71,7 @@ const validateModuleData: (path: string) => boolean = (path: string) => {
       console.log(
         `Missing fields from ${table} in ${path}: ${missingFieldsString}`,
       );
-      return false;
+      return [null, true];
     }
 
     const extraFields = tableFields.filter((f) =>
@@ -82,11 +85,12 @@ const validateModuleData: (path: string) => boolean = (path: string) => {
       console.log(
         `Extra fields in ${table} in ${path}: ${extraFieldsString}`,
       );
-      return false;
+      return [null, true];
     }
 
     // Now we test each known feature to make sure that if its an enum, we know the values
     if (table === "word_features") {
+      wordFeatureColumns.push(...tableFields);
       for (const feature of knownFeatures.features) {
         if (!tableFields.includes(feature.key)) {
           continue;
@@ -113,14 +117,14 @@ const validateModuleData: (path: string) => boolean = (path: string) => {
             console.log(
               `Missing enum values from ${feature.key} in ${path}: ${missingEnumValuesString}`,
             );
-            return false;
+            return [null, true];
           }
         }
       }
     }
   }
 
-  return true;
+  return [wordFeatureColumns, false];
 };
 
 export default validateModuleData;
