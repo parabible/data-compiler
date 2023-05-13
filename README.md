@@ -2,9 +2,15 @@
 
 # Data Compiler
 
-Parabible's Data Compiler (WIP) gathers the data from various module repositories and compiles it into files that seed the database.
+As its name suggests, Parabible's Data Compiler compiles module data from a given folder and generates an output sqlite file as well as compressed (zlib) CSVs for ingestion by the Parabible Database Server.
 
 ## Usage
+
+To compile the data for yourself, you will need to have a folder that contains all the modules you wish to compile. Each module should be in its own subfolder with no other nesting.
+
+Note that the compiler uses Deno with the sqlite3 package, which requires the `--unstable` flag as well as some other allowances (thus "-A"). See [here](https://deno.land/x/sqlite3@0.9.1#usage).
+
+The compiler may be invoked with the following command:
 
 ```
 deno run -A --unstable main.ts /path/to/modules
@@ -86,7 +92,6 @@ type VerseTextArray = {
     trailer: string
 }[]
 ```
-
 
 ### Understanding Versification Schemas
 
