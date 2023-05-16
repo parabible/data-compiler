@@ -56,7 +56,10 @@ modules.forEach((module) => {
   const verseTexts = data.prepare("SELECT * FROM verse_text ORDER BY rid;")
     .all()
     .map((v) => ({
-      parallel_id: getParallelId(v.rid, module.versification_schema),
+      parallel_id: getParallelId(
+        v.rid,
+        module.versification_schema as VersificationSchema,
+      ),
       versification_schema_id: module.versification_schema_id,
       module_id: module.module_id,
       rid: v.rid,
@@ -75,7 +78,10 @@ modules.forEach((module) => {
       .map((w) => ({
         ...w,
         module_id: module.module_id,
-        parallel_id: getParallelId(w.rid, module.versification_schema),
+        parallel_id: getParallelId(
+          w.rid,
+          module.versification_schema as VersificationSchema,
+        ),
       }));
     insertWordFeatures(db, columns, wordFeaturesContent);
   }

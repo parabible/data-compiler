@@ -24,7 +24,9 @@ export default function (
     .map((p) => p.parallel_id);
   console.log("Parallel ids to order:", allPids.length);
   Object.keys(versificationSchemas).forEach((vs) => {
-    const pids = allPids.slice().sort(sortParallelIdsBySchema(vs));
+    const pids = allPids.slice().sort(
+      sortParallelIdsBySchema(vs as VersificationSchema),
+    );
     // write to file
     const orderIndex = pids.map((pid, i) => ({
       parallel_id: pid,

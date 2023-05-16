@@ -48,7 +48,10 @@ alignmentsFromDb.forEach((row, i) => {
 });
 
 let nextParallelId = alignmentsFromDb.length;
-const getParallelId = (rid: number, versification_schema: string) => {
+const getParallelId = (
+  rid: number,
+  versification_schema: VersificationSchema,
+) => {
   if (
     versification_schema in alignments &&
     rid in alignments[versification_schema]
@@ -67,52 +70,39 @@ const getParallelId = (rid: number, versification_schema: string) => {
   return alignments[versification_schema][rid];
 };
 
-const sortParallelIdsBySchema = (schema: string) =>
-  (pidA: number, pidB: number) => {
+const getComparableRidFromParallelId = (
+  parallelId: number,
+  schema: VersificationSchema,
+) => {
+  if (schema in parallelIdMap[parallelId]) {
+    return parallelIdMap[parallelId][schema];
+  }
+  return versification_schema_hierarchy.reduce((acc, vs) => {
+    if (vs in parallelIdMap[parallelId] && !acc) {
+      return parallelIdMap[parallelId][vs];
+    }
+    return acc;
+  }, parallelIdMap[parallelId]?.[schema] ?? 0);
+};
+
+import sortBookIdsBySchema from "./sortBookIdsBySchema.ts";
+
+const sortParallelIdsBySchema =
+  (schema: VersificationSchema) => (pidA: number, pidB: number) => {
     if (!(schema in alignments)) {
       throw new Error(`Invalid versification schema: ${schema}`);
     }
 
-    // Try the preferred schema first
-    if (
-      schema in parallelIdMap[pidA] &&
-      schema in parallelIdMap[pidB]
-    ) {
-      const ridA = parallelIdMap[pidA][schema];
-      const ridB = parallelIdMap[pidB][schema];
-      return ridA - ridB;
+    const ridA = getComparableRidFromParallelId(pidA, schema);
+    const ridB = getComparableRidFromParallelId(pidB, schema);
+
+    // Use integer division to get the book id (1_000_000)
+    const bookA = Math.floor(ridA / 1_000_000);
+    const bookB = Math.floor(ridB / 1_000_000);
+    if (bookA !== bookB) {
+      return sortBookIdsBySchema(bookA, bookB, schema);
     }
-
-    // Try the other schemas in the hierarchy
-    for (let i = 0; i < versification_schema_hierarchy.length; i++) {
-      const vs = versification_schema_hierarchy[i];
-      if (vs === schema) {
-        // Don't need to check if it's in the schema, we already did that
-        continue;
-      }
-
-      if (vs in parallelIdMap[pidA] && vs in parallelIdMap[pidB]) {
-        const ridA = parallelIdMap[pidA][vs];
-        const ridB = parallelIdMap[pidB][vs];
-        return ridA - ridB;
-      }
-    }
-
-    // If all else fails, we just compare the best rid we have
-    // The best rid is defined as the highest up on the hierarchy
-    const bestRidA = versification_schema_hierarchy.reduce((acc, vs) => {
-      if (vs in parallelIdMap[pidA] && !acc) {
-        return parallelIdMap[pidA][vs];
-      }
-      return acc;
-    }, parallelIdMap[pidA]?.[schema] ?? 0);
-    const bestRidB = versification_schema_hierarchy.reduce((acc, vs) => {
-      if (vs in parallelIdMap[pidB] && !acc) {
-        return parallelIdMap[pidB][vs];
-      }
-      return acc;
-    }, parallelIdMap[pidB]?.[schema] ?? 0);
-    return bestRidA - bestRidB;
+    return ridA - ridB;
   };
 
 const getRidFromParallelIdAndSchema = (parallelId: number, schema: string) => {

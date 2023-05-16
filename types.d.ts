@@ -61,3 +61,5 @@ type VerseText = {
   rid: number;
   text: string;
 };
+
+type VersificationSchema = "kjv" | "bhs" | "lxx" | "gnt";
